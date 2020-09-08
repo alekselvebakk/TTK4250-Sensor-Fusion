@@ -1,6 +1,7 @@
 from typing import Union, Optional
 import numpy as np
 from numpy import sqrt
+from numpy.linalg import *
 import matplotlib
 from scipy.stats import norm
 # matplotlib.use('Qt5Agg') # needs the pyqt package, crazy cpu usage sometimes but better behaved than MacOSX
@@ -81,18 +82,24 @@ plot_cov_ellipse2d(ax1, z_r, R_r, edgecolor='C2')
 ax1.axis('equal')
 ax1.legend()
 
-plt.show(block=False)
+plt.show(block=True)
 
 
 # % make the functions to condition
 def condition_mean(x, z, P, H, R):
     # Hints: numpy.linalg, use @ for matrix multiplication (* is elementwise)
-    new_mean = x + P@H.t@np.invert(H@P@H.t+R)@(z-H@x)
+    to_be_inverted = H@P@H.T+R
+    inverted = np.linalg.inv(to_be_inverted)
+    new_mean = x + P@H.T@inverted@(z-H@x)
+
     return new_mean
 
 def condition_cov(P, H, R):
     # Hints: numpy.linalg, use @ for matrix multiplication (* is elementwise)
-    new_cov = P-P@H@np.invert(H@P@H.t+R)H@P.t 
+    to_be_inverted = H@P@H.T+R
+    inverted = np.linalg.inv(to_be_inverted)
+    new_cov = P-P@H@inverted@H@P.T
+
     return new_cov
 
 # % task 5 (f)
@@ -122,14 +129,14 @@ plot_cov_ellipse2d(ax2, z_r, R_r, edgecolor='C2')
 
 ax2.axis('equal')
 ax2.legend()
-plt.show(block=False)
+plt.show(block=True)
 
-# % task 5 (g)
-x_bar_cr = [None]*2  # TODO
-P_cr = None  # TODO
+# %% task 5 (g)
+x_bar_cr = condition_mean(x_bar_c, z_r, P_c, H_r, R_r)  # TODO
+P_cr = condition_cov(P_c, H_r, R_r)  # TODO
 
-x_bar_rc = [None]*2  # TODO
-P_rc = None  # TODO
+x_bar_rc = condition_mean(x_bar_r, z_c, P_r, H_c, R_c)  # TODO
+P_rc = condition_cov(P_r, H_c, R_c)  # TODO
 
 # % Plot 1 sigma ellipses
 
@@ -164,12 +171,18 @@ ax3.scatter(-5, 12, c='C6', marker='^', label='$x$')
 ax3.axis('equal')
 ax3.legend()
 
-# % task 5 (h)
-line_normal = None  # TODO
+plt.show(block = True)
+
+# %% task 5 (h)
+"""line_normal = None  # TODO
 line_position = 5
 xi_mean = None  # TODO
 xi_cov = None  # TODO
-prob_above_line = None  # TODO: hint: norm.sf(...).squeeze() or norm.cdf(...).squeeze()
+"""
+lin_trans = (np.array([-1, 1]))
+lin_trans_mean = lin_trans@x_bar_cr
+lin_trans_cov = lin_trans@P_cr@lin_trans
+prob_above_line = norm.sf(5, lin_trans_mean, sqrt(lin_trans_cov))  # TODO: hint: norm.sf(...).squeeze() or norm.cdf(...).squeeze()
 
 print(f'Probability that it is above x_2 = x_1 + 5 is {prob_above_line}')
 fig4, ax4 = plt.subplots(num=4, clear=True)
@@ -179,3 +192,4 @@ ax4.plot([-1, 4], [4, 9], color='C1', label='$x_2 = x_1 + 5$')
 
 ax4.axis('equal')
 ax4.legend()
+plt.show(block = True)
