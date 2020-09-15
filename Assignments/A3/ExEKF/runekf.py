@@ -90,8 +90,8 @@ ax2.set_ylabel('turn rate')
 # %% a: tune by hand and comment
 
 # set parameters
-sigma_a = 1  # TODO
-sigma_z = 1  # TODO
+sigma_a = 1.5  # TODO
+sigma_z = 3.1  # TODO
 
 # create the model and estimator object
 dynmod = dynamicmodels.WhitenoiseAccelleration(sigma_a)
@@ -101,13 +101,13 @@ print(ekf_filter)  # make use of the @dataclass automatic repr
 
 # initialize mean and covariance
 # TODO: ArrayLike (list, np. array, tuple, ...) with 4 elements
-x_bar_init = None
-P_bar_init = None  # TODO: ArrayLike with 4 x 4 elements, hint: np.diag
+x_bar_init = np.array([0,0,0,0])
+P_bar_init = np.identity(4)  # TODO: ArrayLike with 4 x 4 elements, hint: np.diag
 init_ekfstate = ekf.GaussParams(x_bar_init, P_bar_init)
 
 # estimate
 # TODO
-# ekfpred_list, ekfupd_list = ekf_filter.estimate_sequence(# TODO fill this)
+ekfpred_list, ekfupd_list = ekf_filter.estimate_sequence(Z,init_ekfstate,Ts)
 
 # get statistics:
 # TODO: see that you sort of understand what this does
@@ -122,8 +122,8 @@ print(f'keys in stats is {stats.dtype.names}')
 # stats['dists_pred'] contains 2 norm of position and speed for each time index
 # same for 'dists_upd'
 # TODO: square stats['dists_pred'] -> take its mean over time -> take square root
-RMSE_pred = None  # TODO
-RMSE_upd = None  # TODO same for 'dists_upd'
+RMSE_pred = scipy.sqrt(sum(stats['dists_pred']**2))  # TODO
+RMSE_upd = scipy.sqrt(sum(stats['dists_upd']**2))  # TODO same for 'dists_upd'
 
 fig3, ax3 = plt.subplots(num=3, clear=True)
 
@@ -132,6 +132,8 @@ ax3.plot(*ekfupd_list.mean.T[:2])
 RMSEs_str = ", ".join(f"{v:.2f}" for v in (*RMSE_pred, *RMSE_upd))
 ax3.set_title(
     rf'$\sigma_a = {sigma_a}$, $\sigma_z= {sigma_z}$,' + f'\nRMSE(p_p, p_v, u_p, u_v) = ({RMSEs_str})')
+plt.legend()
+plt.show(block = True)
 
 # %% Task 5 b and c
 

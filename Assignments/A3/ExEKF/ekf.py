@@ -244,7 +244,7 @@ class EKF:
 
         # initialize and allocate
         ekfupd = init_ekfstate
-        n = init_ekfstate.mean.shape[0]
+        n= init_ekfstate.mean.shape[0]
         ekfpred_list = GaussParamList.allocate(K, n)
         ekfupd_list = GaussParamList.allocate(K, n)
 
@@ -254,16 +254,13 @@ class EKF:
         # A potential pythonic way of looping through  the data
         for k, (zk, Tsk, ssk) in enumerate(zip(Z, Ts_arr, sensor_state_seq)):
             #extracting data to use locally in this iteration
-            z = Z[zk]
-            Ts = Ts_arr[Tsk]
-            sensor_state = sensor_state_seq(ssk)
 
             #saving the prediction to the list
-            ekfpred_list[k,:] = self.predict(ekfupd,Ts)
+            ekfpred_list[k]= self.predict(ekfupd,Tsk)
 
             #updating
-            ekfupd = self.step(z,ekfupd,Ts, sensor_state=sensor_state)
-            ekfupd_list[k, :] = ekfupd
+            ekfupd = self.step(zk,ekfupd,Tsk, sensor_state=sensor_state)
+            ekfupd_list[k] = ekfupd
         return ekfpred_list, ekfupd_list
 
     def performance_stats(
