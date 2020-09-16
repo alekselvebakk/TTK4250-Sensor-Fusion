@@ -129,6 +129,8 @@ class EKF:
         x_upd = x +W@v  # TODO: the mean update
         identity_rows, _ = (W@H).shape
         I = np.identity(identity_rows)
+
+
         P_upd = (I-W@H)@P  # TODO: the covariance update
 
         ekfstate_upd = GaussParams(x_upd, P_upd)
@@ -175,7 +177,8 @@ class EKF:
         x, P = ekfstate
 
         x_diff = x-x_true # Optional step
-        NEES = x_diff.T@la.inv(P)@x_diff  # TODO
+        P_inv = la.inv(P)
+        NEES = x_diff.T@P_inv@x_diff  # TODO
         return NEES
 
     def gate(self,

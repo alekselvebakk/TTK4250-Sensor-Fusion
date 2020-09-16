@@ -90,8 +90,8 @@ ax2.set_ylabel('turn rate')
 # %% a: tune by hand and comment
 
 # set parameters
-sigma_a = 1.5  # TODO
-sigma_z = 3.1  # TODO
+sigma_a = 2 # TODO
+sigma_z = 0.07  # TODO
 
 # create the model and estimator object
 dynmod = dynamicmodels.WhitenoiseAccelleration(sigma_a)
@@ -101,8 +101,8 @@ print(ekf_filter)  # make use of the @dataclass automatic repr
 
 # initialize mean and covariance
 # TODO: ArrayLike (list, np. array, tuple, ...) with 4 elements
-x_bar_init = np.array([0,0,0,0])
-P_bar_init = np.identity(4)  # TODO: ArrayLike with 4 x 4 elements, hint: np.diag
+x_bar_init = np.array([1,1,1,1])
+P_bar_init = 10*np.identity(4)  # TODO: ArrayLike with 4 x 4 elements, hint: np.diag
 init_ekfstate = ekf.GaussParams(x_bar_init, P_bar_init)
 
 # estimate
@@ -122,18 +122,15 @@ print(f'keys in stats is {stats.dtype.names}')
 # stats['dists_pred'] contains 2 norm of position and speed for each time index
 # same for 'dists_upd'
 # TODO: square stats['dists_pred'] -> take its mean over time -> take square root
-RMSE_pred = scipy.sqrt(sum(stats['dists_pred']**2))  # TODO
-RMSE_upd = scipy.sqrt(sum(stats['dists_upd']**2))  # TODO same for 'dists_upd'
-
+RMSE_pred = np.lib.scimath.sqrt(sum(stats['dists_pred']**2)/len(stats['dists_pred']))  # TODO
+RMSE_upd = np.lib.scimath.sqrt(sum(stats['dists_upd']**2))  # TODO same for 'dists_upd'
 fig3, ax3 = plt.subplots(num=3, clear=True)
-
 ax3.plot(*Xgt.T[:2])
 ax3.plot(*ekfupd_list.mean.T[:2])
 RMSEs_str = ", ".join(f"{v:.2f}" for v in (*RMSE_pred, *RMSE_upd))
 ax3.set_title(
     rf'$\sigma_a = {sigma_a}$, $\sigma_z= {sigma_z}$,' + f'\nRMSE(p_p, p_v, u_p, u_v) = ({RMSEs_str})')
-plt.legend()
-plt.show(block = True)
+plt.show(block = False)
 
 # %% Task 5 b and c
 
@@ -141,10 +138,10 @@ plt.show(block = True)
 # TODO: pick reasonable values for grid search
 # n_vals = 20  # is Ok, try lower to begin with for more speed (20*20*1000 = 400 000 KF steps)
 n_vals = 20
-sigma_a_low = np.nan
-sigma_a_high = np.nan
-sigma_z_low = np.nan
-sigma_z_high = np.nan
+sigma_a_low = 0.5
+sigma_a_high = 5
+sigma_z_low = 0.5
+sigma_z_high = 5
 
 # % set the grid on logscale(not mandatory)
 sigma_a_list = np.logspace(
@@ -159,28 +156,47 @@ stats_array = np.empty((n_vals, n_vals, K), dtype=dtype)
 # %% run through the grid and estimate
 # ? Should be more or less a copy of the above
 for i, sigma_a in enumerate(sigma_a_list):
-    dynmod = None  # TODO
+    dynmod = dynamicmodels.WhitenoiseAccelleration(sigma_a)
     for j, sigma_z in enumerate(sigma_z_list):
-        measmod = None  # TODO
-        ekf_filter = None  # TODO
+        measmod = measurmentmodels.CartesianPosition(sigma_z)
+        ekf_filter = ekf.EKF(dynmod, measmod)
 
-        ekfpred_list, ekfupd_list = None  # TODO
-        stats_array[i, j] = None  # TODO
+        ekfpred_list, ekfupd_list = ekf_filter.estimate_sequence(Z,init_ekfstate,Ts)
+        stats_array[i, j] = ekf_filter.performance_stats_sequence(
+                            K, Z=Z, ekfpred_list=ekfpred_list, ekfupd_list=ekfupd_list, X_true=Xgt[:, :4],
+                            norm_idxs=[[0, 1], [2, 3]], norms=[2, 2])
 
 # %% calculate averages
 
 # TODO, remember to use axis argument, see eg. stats_array['dists_pred'].shape
-RMSE_pred = None  # TODO
-RMSE_upd = None  # TODO
-ANEES_pred = None  # TODO mean of NEES over time
-ANEES_upd = None  # TODO
-ANIS = None  # TODO mean of NIS over time
+statrows, statcols, _, _ = stats_array['dists_pred'].shape
+dtype_RMSE_pred = RMSE_pred.dtype
+RMSE_pred = np.empty((n_vals,n_vals,2), dtype_RMSE_pred)
+dtype_RMSE_upd = RMSE_upd.dtype
+RMSE_upd = np.empty((n_vals,n_vals,2), dtype_RMSE_upd)
+dtype_ANEES_pred = stats_array['NEESpred'].dtype
+ANEES_pred = np.empty((n_vals,n_vals), dtype_ANEES_pred)
+dtype_ANEES_upd = stats_array['NEESupd'].dtype
+ANEES_upd = np.empty((n_vals,n_vals), dtype_ANEES_upd)
+dtype_ANIS = stats_array['NIS'].dtype
+ANIS = np.empty((n_vals,n_vals), dtype_ANIS)
+
+for row in range(statrows):
+    for col in range(statcols):
+        RMSE_pred[row, col] = np.lib.scimath.sqrt(sum(stats_array[row, col]['dists_pred']**2)/len(stats_array[row, col]['dists_pred']))# TODO
+        RMSE_upd[row, col] = np.lib.scimath.sqrt(sum(stats_array[row, col]['dists_upd']**2)/len(stats_array[row, col]['dists_upd']))  # TODO
+        ANEES_pred[row, col] = sum(stats_array[row, col]['NEESpred'])/len(stats_array[row, col]['NEESpred'])  # TODO mean of NEES over time
+        ANEES_upd[row, col] = sum(stats_array[row, col]['NEESupd'])/len(stats_array[row, col]['NEESupd'])  # TODO
+        ANIS[row, col] = sum(stats_array[row, col]['NIS'])/len(stats_array[row, col]['NIS'])  # TODO mean of NIS over time
+
 
 
 # %% find confidence regions for NIS and plot
-confprob = np.nan  # TODO number to use for confidence interval
-CINIS = np.nan  # TODO confidence intervall for NIS, hint: scipy.stats.chi2.interval
+confprob = 0.95  # TODO number to use for confidence interval
+z_s = len(Z[0,:])
+CINIS = scipy.stats.chi2.interval(confprob, K*z_s, scale = 1/K) # TODO confidence intervall for NIS, hint: scipy.stats.chi2.interval
 print(CINIS)
+print(ANIS)
 
 # plot
 fig4 = plt.figure(4, clear=True)
@@ -194,10 +210,10 @@ ax4.set_ylabel(r'$\sigma_z$')
 ax4.set_zlabel('ANIS')
 ax4.set_zlim(0, 10)
 ax4.view_init(30, 20)
-
 # %% find confidence regions for NEES and plot
-confprob = np.nan  # TODO
-CINEES = np.nan  # TODO, not NIS now, but very similar
+confprob = 0.95  # TODO
+x_d = len(x_bar_init)
+CINEES = scipy.stats.chi2.interval(confprob, K*x_d, scale = 1/K)  # TODO, not NIS now, but very similar
 print(CINEES)
 
 # plot
