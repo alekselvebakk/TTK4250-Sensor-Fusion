@@ -13,7 +13,7 @@ def discrete_bayes(
 ]:  # the new marginal and conditional: shapes=((m,), (m, n))
     """Swap which discrete variable is the marginal and conditional."""
 
-    joint = # TDOO
+    joint = # TODO
 
     marginal = # TODO
 
