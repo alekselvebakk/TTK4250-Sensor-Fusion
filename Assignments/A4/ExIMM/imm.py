@@ -70,8 +70,36 @@ class IMM(Generic[MT]):
         predicted_mode_probabilities, mix_probabilities = 
                     discrete_bayes(immstate.weights,
                                     self.PI)  
-                    # TODO hint: discretebayes.discrete_bayes
+        """
+        We give in immstate.weights, that is the vector containing 
+        probability of each mode at timestep k-1:
 
+        [   P¹_{k-1}
+            P²_{k-1}
+            .
+            .
+            .
+            P^{M}_{k_1}
+        ]
+        This is our prior
+
+        self.PI is the transition matrix
+
+        P_k = PI*P_k-1
+
+        mix_probabilities is 
+        [   P¹_{k-1|s at timestep k}
+            P²_{k-1|s at timestep k}]
+            .
+            .
+            .
+            P^{M}_{k_1|s at timestep k}
+        ]
+
+
+        
+
+        """
 
 
         # Optional assertions for debugging
@@ -433,3 +461,7 @@ class IMM(Generic[MT]):
             estimates.append(self.estimate(immstate_upd))
 
         return immstate_pred_list, immstate_upd_list, estimates
+
+# %%
+
+# %%
